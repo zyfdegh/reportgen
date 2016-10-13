@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aswjh/excel"
@@ -33,18 +32,8 @@ const (
 	// 报表名称
 	REPORT_NAME = "report.xls"
 	// 后缀名
-	REPORT_SUFFIX = "-report.xls"
+	REPORT_SUFFIX = "-meta.xls"
 )
-
-var (
-	once sync.Once
-)
-
-func init() {
-	once.Do(func() {
-		initReportXls()
-	})
-}
 
 func initReportXls() (err error) {
 	// check if report exist
@@ -97,7 +86,12 @@ func process(file string) (err error) {
 
 	for i, sheet := range mso.Sheets() {
 		if !strings.Contains(sheet.Name(), "号段") {
-			fmt.Printf("- Skip sheet %d: %s\n", i, sheet.Name())
+			fmt.Printf("- Skip sheet %d: %s\n due to sheet name", i, sheet.Name())
+			continue
+		}
+		title, _ := sheet.GetCell(1, 1)
+		if !strings.Contains(excel.String(title), "办理明细") {
+			fmt.Printf("- Skip sheet %d: %s\n due to title", i, excel.String(title))
 			continue
 		}
 
@@ -183,8 +177,8 @@ func process(file string) (err error) {
 
 		fmt.Println(freqTable)
 
-		resultXlsName := strings.Trim(file, ".xls") + REPORT_SUFFIX
-		err := writeExcel(freqTable, top, resultXlsName)
+		resultXlsName := strings.Trim(file, ".xls") + fmt.Sprintf("-sheet%d", i) + REPORT_SUFFIX
+		err := writeExcel(freqTable, top, resultXlsName, sheet.Name())
 		if err != nil {
 			log.Printf("write result to excel error: %v\n", err)
 			continue
@@ -195,7 +189,7 @@ func process(file string) (err error) {
 	return
 }
 
-func writeExcel(freqTable [N_CODE_TOP][24]int, top []int, fileName string) (err error) {
+func writeExcel(freqTable [N_CODE_TOP][24]int, top []int, fileName string, sheetName string) (err error) {
 	// print formatted table
 	fmt.Println("*********************************************************")
 	for i := 0; i < 24; i++ {
@@ -221,6 +215,7 @@ func writeExcel(freqTable [N_CODE_TOP][24]int, top []int, fileName string) (err 
 	defer resultXls.Quit()
 
 	sheet, _ := resultXls.Sheet(1)
+	sheet.Name(sheetName)
 	for i := HOUR_BEGIN; i < HOUR_END; i++ {
 		// row 1
 		sheet.PutCell(1, i+2-HOUR_BEGIN, fmt.Sprintf("%02d~%02dh\t", i, i+1))

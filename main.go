@@ -12,13 +12,6 @@ func main() {
 		log.Printf("stat file error: %v\n", err)
 		return
 	}
-	// // generate 0-23h as float
-	// var hours []float32
-	// hours = make([]float32, 24)
-	// for i := 0; i < 24; i++ {
-	// 	hours[i] = float32(i) / float32(24)
-	// 	fmt.Printf("hour[%d]: %v\n", i, hours[i])
-	// }
 
 	//process
 	err := process(file)

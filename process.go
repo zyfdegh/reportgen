@@ -22,6 +22,11 @@ const (
 
 	// 最大业务代码个数
 	N_CODE_TOP = 30
+
+	// 统计几点开始
+	HOUR_BEGIN = 9
+	// 统计几点结束
+	HOUR_END = 15
 )
 
 func process(file string) (err error) {
@@ -157,6 +162,7 @@ func writeExcel(freqTable [N_CODE_TOP][24]int, top []int, fileName string) (err 
 	}
 	fmt.Println("*********************************************************")
 
+	// write to excel
 	option := excel.Option{"Visible": false, "DisplayAlerts": true}
 	resultXls, err := excel.New(option)
 	if err != nil {
@@ -166,17 +172,17 @@ func writeExcel(freqTable [N_CODE_TOP][24]int, top []int, fileName string) (err 
 	defer resultXls.Quit()
 
 	sheet, _ := resultXls.Sheet(1)
-	for i := 0; i < 24; i++ {
+	for i := HOUR_BEGIN; i < HOUR_END; i++ {
 		// row 1
-		sheet.PutCell(1, i+2, fmt.Sprintf("%02d~%02dh\t", i, i+1))
+		sheet.PutCell(1, i+2-HOUR_BEGIN, fmt.Sprintf("%02d~%02dh\t", i, i+1))
 	}
 	for i := 0; i < N_CODE_TOP; i++ {
 		// col 1
 		sheet.PutCell(i+2, 1, fmt.Sprintf("%4d", top[i]))
-		for j := 0; j < 24; j++ {
+		for j := HOUR_BEGIN; j < HOUR_END; j++ {
 			if freqTable[i][j] != 0 {
 				// frequencies
-				sheet.PutCell(i+2, j+2, fmt.Sprintf("%d", freqTable[i][j]))
+				sheet.PutCell(i+2, j+2-HOUR_BEGIN, fmt.Sprintf("%d", freqTable[i][j]))
 			}
 		}
 	}

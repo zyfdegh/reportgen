@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -28,45 +27,10 @@ const (
 	HOUR_BEGIN = 9
 	// 统计几点结束
 	HOUR_END = 15
-
-	// 报表名称
-	REPORT_NAME = "report.xls"
-	// 后缀名
-	REPORT_SUFFIX = "-meta.xls"
 )
 
-func initReportXls() (err error) {
-	// check if report exist
-	if _, err = os.Stat(REPORT_NAME); err == nil {
-		log.Printf("file %s already exist\n", REPORT_NAME)
-	}
-
-	// write to excel
-	// TODO alert
-	option := excel.Option{"Visible": false, "DisplayAlerts": false}
-	resultXls, err := excel.New(option)
-	if err != nil {
-		log.Printf("new excel error: %v\n", err)
-		return
-	}
-	defer resultXls.Quit()
-
-	// init first line
-	sheet, _ := resultXls.Sheet(1)
-	sheet.PutCell(1, 1, "时段")
-	sheet.PutCell(1, 2, "序号")
-	sheet.PutCell(1, 3, fmt.Sprintf("频率最高%d个", N_CODE_TOP))
-	sheet.PutCell(1, 4, "总次数")
-	for i := HOUR_BEGIN; i < HOUR_END; i++ {
-		sheet.PutCell(1, i-HOUR_BEGIN+5, fmt.Sprintf("%d~%d\t", i, i+1))
-	}
-	errArr := resultXls.SaveAs(REPORT_NAME)
-	if len(errArr) > 0 {
-		log.Printf("save result xls error: %v\n", errArr)
-		return
-	}
-	return
-}
+// for offset
+var writeCount int
 
 func process(file string) (err error) {
 	t1 := time.Now()
@@ -86,12 +50,12 @@ func process(file string) (err error) {
 
 	for i, sheet := range mso.Sheets() {
 		if !strings.Contains(sheet.Name(), "号段") {
-			fmt.Printf("- Skip sheet %d: %s\n due to sheet name", i, sheet.Name())
+			fmt.Printf("- Skip sheet %d: %s due to sheet name\n", i, sheet.Name())
 			continue
 		}
 		title, _ := sheet.GetCell(1, 1)
 		if !strings.Contains(excel.String(title), "办理明细") {
-			fmt.Printf("- Skip sheet %d: %s\n due to title", i, excel.String(title))
+			fmt.Printf("- Skip sheet %d: %s due to title\n", i, excel.String(title))
 			continue
 		}
 
@@ -175,39 +139,49 @@ func process(file string) (err error) {
 			}
 		}
 
-		fmt.Println(freqTable)
+		fmt.Println("- Calculating ratio table...")
+		var trimedTable [N_CODE_TOP][HOUR_END - HOUR_BEGIN]int
+		for j := 0; j < N_CODE_TOP; j++ {
+			for k := 0; k < HOUR_END-HOUR_BEGIN; k++ {
+				trimedTable[j][k] = freqTable[j][k+HOUR_BEGIN]
+			}
+		}
 
-		resultXlsName := strings.Trim(file, ".xls") + fmt.Sprintf("-sheet%d", i) + REPORT_SUFFIX
-		err := writeExcel(freqTable, top, resultXlsName, sheet.Name())
+		var ratioTable [N_CODE_TOP][HOUR_END - HOUR_BEGIN]float32
+		for j := 0; j < N_CODE_TOP; j++ {
+			sum := 0
+			for k := 0; k < HOUR_END-HOUR_BEGIN; k++ {
+				sum += trimedTable[j][k]
+			}
+			for k := 0; k < HOUR_END-HOUR_BEGIN; k++ {
+				if sum != 0 {
+					ratioTable[j][k] = float32(trimedTable[j][k]) / float32(sum)
+				}
+			}
+		}
+
+		fmt.Printf("* Ratio table: %v\n", ratioTable)
+
+		fmt.Printf("- Writing data to file %s...\n", reportXlsPath)
+
+		numPeriod := strings.Trim(sheet.Name(), "号段")
+		err := writeExcel(writeCount, trimedTable, ratioTable, top, reportXlsPath, numPeriod)
 		if err != nil {
 			log.Printf("write result to excel error: %v\n", err)
 			continue
 		}
+		writeCount++
 	}
 
-	fmt.Printf("Time: %vs\n", time.Since(t1).Seconds())
+	fmt.Printf("* Time spent: %vs\n", time.Since(t1).Seconds())
 	return
 }
 
-func writeExcel(freqTable [N_CODE_TOP][24]int, top []int, fileName string, sheetName string) (err error) {
-	// print formatted table
-	fmt.Println("*********************************************************")
-	for i := 0; i < 24; i++ {
-		fmt.Printf("%02d~%02dh\t", i, i+1)
-	}
-	fmt.Println("")
-	for i := 0; i < N_CODE_TOP; i++ {
-		fmt.Printf("%4d |", top[i])
-		for j := 0; j < 24; j++ {
-			fmt.Printf("      %d\t", freqTable[i][j])
-		}
-		fmt.Println("")
-	}
-	fmt.Println("*********************************************************")
-
+// write to report
+func writeExcel(n int, trimedTable [N_CODE_TOP][HOUR_END - HOUR_BEGIN]int, ratioTable [N_CODE_TOP][HOUR_END - HOUR_BEGIN]float32, top []int, fileName string, numPeriod string) (err error) {
 	// write to excel
-	option := excel.Option{"Visible": false, "DisplayAlerts": true}
-	resultXls, err := excel.New(option)
+	option := excel.Option{"Visible": false, "DisplayAlerts": false}
+	resultXls, err := excel.Open(fileName, option)
 	if err != nil {
 		log.Printf("new excel error: %v\n", err)
 		return
@@ -215,25 +189,29 @@ func writeExcel(freqTable [N_CODE_TOP][24]int, top []int, fileName string, sheet
 	defer resultXls.Quit()
 
 	sheet, _ := resultXls.Sheet(1)
-	sheet.Name(sheetName)
-	for i := HOUR_BEGIN; i < HOUR_END; i++ {
-		// row 1
-		sheet.PutCell(1, i+2-HOUR_BEGIN, fmt.Sprintf("%02d~%02dh\t", i, i+1))
-	}
+
+	offset := n * N_CODE_TOP
 	for i := 0; i < N_CODE_TOP; i++ {
-		// col 1
-		sheet.PutCell(i+2, 1, fmt.Sprintf("%4d", top[i]))
-		for j := HOUR_BEGIN; j < HOUR_END; j++ {
-			if freqTable[i][j] != 0 {
-				// frequencies
-				sheet.PutCell(i+2, j+2-HOUR_BEGIN, fmt.Sprintf("%d", freqTable[i][j]))
-			}
+		sheet.PutCell(i+2+offset, 1, numPeriod)
+		sheet.PutCell(i+2+offset, 2, i+1)
+		sheet.PutCell(i+2+offset, 3, top[i])
+		sum := 0
+		for j := 0; j < HOUR_END-HOUR_BEGIN; j++ {
+			sum += trimedTable[i][j]
+		}
+		sheet.PutCell(i+2+offset, 4, sum)
+		for j := 0; j < HOUR_END-HOUR_BEGIN; j++ {
+			sheet.PutCell(i+2+offset, j+5, fmt.Sprintf("%.2f%%", 100*ratioTable[i][j]))
 		}
 	}
 	errArr := resultXls.SaveAs(fileName)
 	if len(errArr) > 0 {
+		if len(errArr) == 1 && errArr[0] == nil {
+			return
+		}
 		log.Printf("save result xls error: %v\n", errArr)
 		return
 	}
+	time.Sleep(3 * time.Second)
 	return
 }

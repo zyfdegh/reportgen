@@ -12,14 +12,29 @@ func TestTop(t *testing.T) {
 		n int
 		b []int
 	}{
-		{[]int{2, 4, 6, 3, 1}, 2, []int{4, 6}},
-		{[]int{2, 4, 6, 4, 2}, 3, []int{2, 4, 6}},
-		{[]int{18, 30, 23, 9, 8, 8, 2, 8, 4, 1, 12, 3, 4, 2, 3, 4, 4, 1, 4, 26, 1, 6}, 5, []int{12, 18, 23, 26, 30}},
+		{[]int{2, 4, 6, 3, 1}, 2, []int{6, 4}},
+		{[]int{2, 4, 6, 4, 3, 0}, 3, []int{6, 4, 3}},
+		{[]int{18, 30, 23, 9, 8, 8, 2, 8, 4, 1, 12, 3, 4, 2, 3, 4, 4, 1, 4, 26, 1, 6}, 5, []int{30, 26, 23, 18, 12}},
 	}
 
 	for _, c := range cases {
 		got := top(c.a, c.n)
 		assert.Equal(t, c.b, got)
+	}
+}
+
+func TestContain(t *testing.T) {
+	var cases = []struct {
+		arr    []int
+		a      int
+		result bool
+	}{
+		{[]int{1, 2, 3}, 1, true},
+		{[]int{0, 2, 3}, 1, false},
+	}
+	for _, c := range cases {
+		got := contain(c.arr, c.a)
+		assert.Equal(t, c.result, got)
 	}
 }
 

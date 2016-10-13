@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aswjh/excel"
@@ -27,7 +29,55 @@ const (
 	HOUR_BEGIN = 9
 	// 统计几点结束
 	HOUR_END = 15
+
+	// 报表名称
+	REPORT_NAME = "report.xls"
+	// 后缀名
+	REPORT_SUFFIX = "-report.xls"
 )
+
+var (
+	once sync.Once
+)
+
+func init() {
+	once.Do(func() {
+		initReportXls()
+	})
+}
+
+func initReportXls() (err error) {
+	// check if report exist
+	if _, err = os.Stat(REPORT_NAME); err == nil {
+		log.Printf("file %s already exist\n", REPORT_NAME)
+	}
+
+	// write to excel
+	// TODO alert
+	option := excel.Option{"Visible": false, "DisplayAlerts": false}
+	resultXls, err := excel.New(option)
+	if err != nil {
+		log.Printf("new excel error: %v\n", err)
+		return
+	}
+	defer resultXls.Quit()
+
+	// init first line
+	sheet, _ := resultXls.Sheet(1)
+	sheet.PutCell(1, 1, "时段")
+	sheet.PutCell(1, 2, "序号")
+	sheet.PutCell(1, 3, fmt.Sprintf("频率最高%d个", N_CODE_TOP))
+	sheet.PutCell(1, 4, "总次数")
+	for i := HOUR_BEGIN; i < HOUR_END; i++ {
+		sheet.PutCell(1, i-HOUR_BEGIN+5, fmt.Sprintf("%d~%d\t", i, i+1))
+	}
+	errArr := resultXls.SaveAs(REPORT_NAME)
+	if len(errArr) > 0 {
+		log.Printf("save result xls error: %v\n", errArr)
+		return
+	}
+	return
+}
 
 func process(file string) (err error) {
 	t1 := time.Now()
@@ -129,12 +179,11 @@ func process(file string) (err error) {
 					// fmt.Println(freqTable)
 				}
 			}
-
 		}
 
 		fmt.Println(freqTable)
 
-		resultXlsName := strings.Trim(file, ".xls") + "-Analysis.xls"
+		resultXlsName := strings.Trim(file, ".xls") + REPORT_SUFFIX
 		err := writeExcel(freqTable, top, resultXlsName)
 		if err != nil {
 			log.Printf("write result to excel error: %v\n", err)

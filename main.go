@@ -18,6 +18,9 @@ const (
 	REPORT_NAME = "report.xls"
 	// timeout to delete
 	DELETE_TIME = 60
+
+	COLOR_YELLOW = 6
+	COLOR_RED    = 3
 )
 
 var (
@@ -63,6 +66,8 @@ func main() {
 		}
 	}
 	fmt.Printf("* Time spent total: %vs\n", time.Since(t1).Seconds())
+
+	fmt.Printf("All done! Report file: %s\n", reportXlsPath)
 }
 
 func scanXlsFiles() (currentDir string, xlsFiles []string, err error) {
@@ -107,7 +112,7 @@ func initReportXls(path string) (err error) {
 	// check if report exist
 	if _, err = os.Stat(path); err == nil {
 		for i := 0; i < DELETE_TIME; i++ {
-			fmt.Printf("\rfile \"%s\" already exist, will DELETE it in %ds, backup now", path, DELETE_TIME-i)
+			fmt.Printf("\rfile \"%s\" already exists, will DELETE it in %ds, backup now", path, DELETE_TIME-i)
 			time.Sleep(1 * time.Second)
 		}
 
@@ -138,6 +143,9 @@ func initReportXls(path string) (err error) {
 	for i := HOUR_BEGIN; i < HOUR_END; i++ {
 		sheet.PutCell(1, i-HOUR_BEGIN+5, fmt.Sprintf("%d~%d\t", i, i+1))
 	}
+	for i := 0; i < HOUR_END-HOUR_BEGIN+4; i++ {
+		setCellColor(sheet, 1, i+1, COLOR_YELLOW)
+	}
 	errArr := resultXls.SaveAs(path)
 	if len(errArr) > 0 {
 		if len(errArr) == 1 && errArr[0] == nil {
@@ -147,4 +155,9 @@ func initReportXls(path string) (err error) {
 		return
 	}
 	return
+}
+
+func setCellColor(sheet excel.Sheet, row, col int, color int) (err error) {
+	cell := sheet.MustCell(row, col)
+	return cell.Put("interior", "colorindex", color)
 }

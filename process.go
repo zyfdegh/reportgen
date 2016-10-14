@@ -27,6 +27,9 @@ const (
 	HOUR_BEGIN = 9
 	// 统计几点结束
 	HOUR_END = 15
+
+	// 大于40%表为红色
+	THRESHOLD_RED = 40
 )
 
 // for offset
@@ -202,6 +205,9 @@ func writeExcel(n int, trimedTable [N_CODE_TOP][HOUR_END - HOUR_BEGIN]int, ratio
 		sheet.PutCell(i+2+offset, 4, sum)
 		for j := 0; j < HOUR_END-HOUR_BEGIN; j++ {
 			sheet.PutCell(i+2+offset, j+5, fmt.Sprintf("%.2f%%", 100*ratioTable[i][j]))
+			if 100*ratioTable[i][j] > THRESHOLD_RED {
+				setCellColor(sheet, i+2+offset, j+5, COLOR_RED)
+			}
 		}
 	}
 	errArr := resultXls.SaveAs(fileName)

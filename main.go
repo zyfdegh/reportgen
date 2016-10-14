@@ -66,7 +66,8 @@ func main() {
 		}
 	}
 	fmt.Printf("* Time spent total: %vs\n", time.Since(t1).Seconds())
-
+	fmt.Println("= This tool is open sourced at https://github.com/zyfdegh/reportgen")
+	fmt.Println("= Author RedMothball, email zyfdegg@gmail.com.")
 	fmt.Printf("All done! Report file: %s\n", reportXlsPath)
 }
 

@@ -16,6 +16,11 @@ Analyse and generate Excel report.
 1. 追加写入数据到报表report.xls；
 1. 继续分析下一个文件，重复步骤1-5。
 
+# 注意
+* 程序执行之前关闭所有正在运行的Excel；
+* 程序执行期间不要打开Excel文件，尤其是report.xls文件；
+* 如果中断正在执行的程序（如按CTRL+C或点击了关闭按钮），需要在任务管理器关闭残留的Excel.exe进程，才能再一次运行程序。
+
 # 使用
 
 1. 将所有待处理的Excel表格放入同一个目录；

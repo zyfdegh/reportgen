@@ -69,6 +69,8 @@ func main() {
 	fmt.Println("= This tool is open sourced at https://github.com/zyfdegh/reportgen")
 	fmt.Println("= Author RedMothball, email zyfdegg@gmail.com.")
 	fmt.Printf("All done! Report file: %s\n", reportXlsPath)
+	// pause a while
+	time.Sleep(10 * time.Second)
 }
 
 func scanXlsFiles() (currentDir string, xlsFiles []string, err error) {

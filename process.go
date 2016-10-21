@@ -39,7 +39,7 @@ func process(file string) (err error) {
 	t1 := time.Now()
 
 	fmt.Printf("======>> Processing %s...\n", file)
-	option := excel.Option{"Visible": false, "DisplayAlerts": true}
+	option := excel.Option{"Visible": false, "DisplayAlerts": false}
 	mso, err := excel.Open(file, option)
 	if err != nil {
 		log.Printf("open excel error: %v\n", err)
@@ -62,7 +62,7 @@ func process(file string) (err error) {
 			continue
 		}
 
-		fmt.Printf("- Process sheet %d: %s\n", i, sheet.Name())
+		fmt.Printf("- Processing sheet %d: %s\n", i, sheet.Name())
 
 		// get row count
 		fmt.Println("- Counting rows...")
@@ -77,8 +77,8 @@ func process(file string) (err error) {
 		fmt.Printf("* Rows: %d\n", row)
 
 		fmt.Println("- Collecting codes...")
-		// Ye Wu Dai Ma
-		codeArr := []int{}
+
+		codeFreqArr := []CodeFreq{}
 
 		// j: row
 		for j := ROW_DATA; j <= row; j++ {
@@ -93,13 +93,22 @@ func process(file string) (err error) {
 				log.Printf("parse string to int error: %v\n", err)
 				continue
 			}
-			codeArr = append(codeArr, int(code))
+
+			contain, index := scan(codeFreqArr, int(code))
+			if contain {
+				codeFreqArr[index].Freq++
+			} else {
+				codeFreqArr = append(codeFreqArr, CodeFreq{Code: int(code), Freq: 1})
+			}
 		}
 
-		fmt.Println("- Sorting codes...")
+		fmt.Println("- Sorting frequencies...")
 		// get top 30 biggest number
-		top := top(codeArr, N_CODE_TOP)
-		fmt.Printf("* Top %d codes: %v\n", N_CODE_TOP, top)
+		topCodeFreqArr := top(codeFreqArr, N_CODE_TOP)
+
+		// for i, codeFreq := range topCodeFreqArr {
+		// 	fmt.Printf("* Top %d frequent: code %d, freq %d\n", i+1, codeFreq.Code, codeFreq.Freq)
+		// }
 
 		fmt.Println("- Generating frequency table...")
 		//// Loop and count frequency
@@ -123,7 +132,7 @@ func process(file string) (err error) {
 			}
 
 			for k := 0; k < N_CODE_TOP; k++ {
-				if int(code) == top[k] {
+				if int(code) == topCodeFreqArr[k].Code {
 					timeCell, err := sheet.GetCell(j, COL_TIME)
 					if err != nil {
 						log.Printf("get cell(%d,%d) error:%v\n", j, COL_CODE, err)
@@ -137,7 +146,6 @@ func process(file string) (err error) {
 					}
 					h := hour(float32(f))
 					freqTable[k][h]++
-					// fmt.Println(freqTable)
 				}
 			}
 		}
@@ -163,12 +171,10 @@ func process(file string) (err error) {
 			}
 		}
 
-		fmt.Printf("* Ratio table: %v\n", ratioTable)
-
 		fmt.Printf("- Writing data to file %s...\n", reportXlsPath)
 
 		numPeriod := strings.Trim(sheet.Name(), "号段")
-		err := writeExcel(writeCount, trimedTable, ratioTable, top, reportXlsPath, numPeriod)
+		err := writeExcel(writeCount, topCodeFreqArr, ratioTable, reportXlsPath, numPeriod)
 		if err != nil {
 			log.Printf("write result to excel error: %v\n", err)
 			continue
@@ -181,7 +187,7 @@ func process(file string) (err error) {
 }
 
 // write to report
-func writeExcel(n int, trimedTable [N_CODE_TOP][HOUR_END - HOUR_BEGIN]int, ratioTable [N_CODE_TOP][HOUR_END - HOUR_BEGIN]float32, top []int, fileName string, numPeriod string) (err error) {
+func writeExcel(n int, trimedCodeFreqArr []CodeFreq, ratioTable [N_CODE_TOP][HOUR_END - HOUR_BEGIN]float32, fileName string, numPeriod string) (err error) {
 	// write to excel
 	option := excel.Option{"Visible": false, "DisplayAlerts": false}
 	resultXls, err := excel.Open(fileName, option)
@@ -197,15 +203,18 @@ func writeExcel(n int, trimedTable [N_CODE_TOP][HOUR_END - HOUR_BEGIN]int, ratio
 	for i := 0; i < N_CODE_TOP; i++ {
 		sheet.PutCell(i+2+offset, 1, numPeriod)
 		sheet.PutCell(i+2+offset, 2, i+1)
-		sheet.PutCell(i+2+offset, 3, top[i])
-		sum := 0
-		for j := 0; j < HOUR_END-HOUR_BEGIN; j++ {
-			sum += trimedTable[i][j]
-		}
-		sheet.PutCell(i+2+offset, 4, sum)
-		for j := 0; j < HOUR_END-HOUR_BEGIN; j++ {
+		sheet.PutCell(i+2+offset, 3, trimedCodeFreqArr[i].Code)
+		sheet.PutCell(i+2+offset, 4, trimedCodeFreqArr[i].Freq)
+		for j := 0; j < 12-HOUR_BEGIN; j++ {
 			sheet.PutCell(i+2+offset, j+5, fmt.Sprintf("%.2f%%", 100*ratioTable[i][j]))
 			if 100*ratioTable[i][j] > THRESHOLD_RED {
+				setCellColor(sheet, i+2+offset, j+5, COLOR_RED)
+			}
+		}
+		skip := 12 - HOUR_BEGIN
+		for j := skip; j < HOUR_END-13+skip; j++ {
+			sheet.PutCell(i+2+offset, j+5, fmt.Sprintf("%.2f%%", 100*ratioTable[i][j+1]))
+			if 100*ratioTable[i][j+1] > THRESHOLD_RED {
 				setCellColor(sheet, i+2+offset, j+5, COLOR_RED)
 			}
 		}

@@ -114,18 +114,11 @@ func scanXlsFiles() (currentDir string, xlsFiles []string, err error) {
 func initReportXls(path string) (err error) {
 	// check if report exist
 	if _, err = os.Stat(path); err == nil {
-		for i := 0; i < DELETE_TIME; i++ {
-			fmt.Printf("\rfile \"%s\" already exists, will DELETE it in %ds, backup now", path, DELETE_TIME-i)
-			time.Sleep(1 * time.Second)
-		}
-
-		fmt.Println("")
-
 		err = os.Remove(path)
 		if err != nil {
 			fmt.Printf("delete file %s error: %v\n", path, err)
 		}
-		fmt.Printf("file %s deleted\n", path)
+		fmt.Printf("deleted file %s\n", path)
 	}
 
 	// write to excel
@@ -143,10 +136,13 @@ func initReportXls(path string) (err error) {
 	sheet.PutCell(1, 2, "序号")
 	sheet.PutCell(1, 3, fmt.Sprintf("频率最高%d个", N_CODE_TOP))
 	sheet.PutCell(1, 4, "总次数")
-	for i := HOUR_BEGIN; i < HOUR_END; i++ {
+	for i := HOUR_BEGIN; i < 12; i++ {
 		sheet.PutCell(1, i-HOUR_BEGIN+5, fmt.Sprintf("%d~%d\t", i, i+1))
 	}
-	for i := 0; i < HOUR_END-HOUR_BEGIN+4; i++ {
+	for i := 13; i < HOUR_END; i++ {
+		sheet.PutCell(1, i-HOUR_BEGIN+4, fmt.Sprintf("%d~%d\t", i, i+1))
+	}
+	for i := 0; i < HOUR_END-HOUR_BEGIN+3; i++ {
 		setCellColor(sheet, 1, i+1, COLOR_YELLOW)
 	}
 	errArr := resultXls.SaveAs(path)

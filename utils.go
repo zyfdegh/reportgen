@@ -1,15 +1,16 @@
 package main
 
-// sort and get top n unique biggest number, from bigger to smaller
-func top(a []int, n int) (b []int) {
+// sort and get top n biggest number, from bigger to smaller
+func top(a []CodeFreq, n int) (b []CodeFreq) {
 	lenA := len(a)
 	if lenA > n {
-		b = make([]int, n)
+		b = make([]CodeFreq, n)
 		for i := 0; i < lenA; i++ {
-			if a[i] > b[n-1] && !contain(b, a[i]) {
+			if a[i].Freq > b[n-1].Freq {
 				for j := 0; j < n-1; j++ {
-					b[n-1-j] = a[i]
-					if b[n-2-j] < b[n-1-j] {
+					b[n-1-j].Freq = a[i].Freq
+					b[n-1-j].Code = a[i].Code
+					if b[n-2-j].Freq < b[n-1-j].Freq {
 						tmp := b[n-2-j]
 						b[n-2-j] = b[n-1-j]
 						b[n-1-j] = tmp
@@ -23,14 +24,13 @@ func top(a []int, n int) (b []int) {
 	return
 }
 
-// return true if a in arr
-func contain(arr []int, a int) bool {
-	for i := 0; i < len(arr); i++ {
-		if arr[i] == a {
-			return true
+func scan(arr []CodeFreq, code int) (contain bool, index int) {
+	for i, freq := range arr {
+		if freq.Code == code {
+			return true, i
 		}
 	}
-	return false
+	return false, -1
 }
 
 // input float time, return int time

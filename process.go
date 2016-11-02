@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"math"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,14 +20,14 @@ const (
 	ROW_DATA = 5
 
 	// 最大业务代码个数
-	N_CODE_TOP = 30
+	N_CODE_TOP = 15
 
 	// 统计几点开始
 	HOUR_BEGIN = 9
 	// 统计几点结束
 	HOUR_END = 15
 
-	// 大于40%表为红色
+	// 大于40%标为红色
 	THRESHOLD_RED = 40
 )
 
@@ -37,8 +36,6 @@ var writeCount int
 
 func process(file string) (err error) {
 	t1 := time.Now()
-
-	fmt.Printf("======>> Processing %s...\n", file)
 	option := excel.Option{"Visible": false, "DisplayAlerts": false}
 	mso, err := excel.Open(file, option)
 	if err != nil {
@@ -56,18 +53,12 @@ func process(file string) (err error) {
 			fmt.Printf("- Skip sheet %d: %s due to sheet name\n", i, sheet.Name())
 			continue
 		}
-		title, _ := sheet.GetCell(1, 1)
-		if !strings.Contains(excel.String(title), "办理明细") {
-			fmt.Printf("- Skip sheet %d: %s due to title\n", i, excel.String(title))
-			continue
-		}
-
 		fmt.Printf("- Processing sheet %d: %s\n", i, sheet.Name())
 
 		// get row count
 		fmt.Println("- Counting rows...")
 		row := 0
-		for c := 1; c < math.MaxInt32; c++ {
+		for c := 1; c < math.MaxInt16; c++ {
 			cell, _ := sheet.GetCell(c, COL_TIME)
 			if excel.String(cell) == "已导出明细" {
 				break
@@ -88,7 +79,7 @@ func process(file string) (err error) {
 				log.Printf("get code cell error: %v\n", err)
 				continue
 			}
-			code, err := strconv.ParseInt(excel.String(codeCell), 10, 0)
+			code, err := parseInt(excel.String(codeCell))
 			if err != nil {
 				log.Printf("parse string to int error: %v\n", err)
 				continue
@@ -125,7 +116,7 @@ func process(file string) (err error) {
 				log.Printf("get cell(%d,%d) error:%v\n", j, COL_CODE, err)
 				continue
 			}
-			code, err := strconv.ParseInt(excel.String(codeCell), 10, 0)
+			code, err := parseInt(excel.String(codeCell))
 			if err != nil {
 				log.Printf("parse cell(%d,%d) to int error:%v\n", j, COL_CODE, err)
 				continue
@@ -139,7 +130,7 @@ func process(file string) (err error) {
 						continue
 					}
 					// f is time like 0.375
-					f, err := strconv.ParseFloat(excel.String(timeCell), 32)
+					f, err := parseFloat(excel.String(timeCell))
 					if err != nil {
 						log.Printf("parse cell(%d,%d) to float error:%v\n", k, COL_TIME, err)
 						continue

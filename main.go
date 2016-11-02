@@ -58,7 +58,8 @@ func main() {
 	reportXlsPath = filepath.Join(currentDir, REPORT_NAME)
 	initReportXls(reportXlsPath)
 
-	for _, f := range xlsFiles {
+	for i, f := range xlsFiles {
+		fmt.Printf("======>> [%d/%d] Processing %s...\n", i+1, len(xlsFiles), f)
 		err := process(filepath.Join(currentDir, f))
 		if err != nil {
 			log.Printf("process file error: %v\n", err)

@@ -1,6 +1,10 @@
 package main
 
-import "regexp"
+import (
+	"log"
+	"regexp"
+	"strconv"
+)
 
 // sort and get top n biggest number, from bigger to smaller
 func top(a []CodeFreq, n int) (b []CodeFreq) {
@@ -44,7 +48,7 @@ func hour(f float32) (h int) {
 }
 
 // match and return 6 number in string
-func extractSixNum(str string) (num string) {
+func extractSixNum(str string) string {
 	reg := regexp.MustCompile("[0-9]+")
 	arr := reg.FindAllString(str, -1)
 	for _, s := range arr {
@@ -52,5 +56,23 @@ func extractSixNum(str string) (num string) {
 			return s
 		}
 	}
-	return
+	return ""
+}
+
+func parseInt(str string) (n int, err error) {
+	n64, err := strconv.ParseInt(str, 10, 0)
+	if err != nil {
+		log.Printf("parse string to int error: %v\n", err)
+		return
+	}
+	return int(n64), nil
+}
+
+func parseFloat(str string) (f float32, err error) {
+	f64, err := strconv.ParseFloat(str, 32)
+	if err != nil {
+		log.Printf("parse string to float error:%v\n", err)
+		return
+	}
+	return float32(f64), nil
 }

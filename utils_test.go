@@ -50,3 +50,26 @@ func TestHour(t *testing.T) {
 		assert.Equal(t, c.h, got)
 	}
 }
+
+func TestExtractSixNum(t *testing.T) {
+	var cases = []struct {
+		s string
+		e string
+	}{
+		{"", ""},
+		{"12345", ""},
+		{"helloworld", ""},
+		{"123456", "123456"},
+		{"12345678", ""},
+		{"123456号段", "123456"},
+		{"123456-号段", "123456"},
+		{"123456号段.xls", "123456"},
+		{"123456号段2.xls", "123456"},
+		{"123456号段234567.xls", "123456"},
+	}
+
+	for _, c := range cases {
+		got := extractSixNum(c.s)
+		assert.Equal(t, c.e, got)
+	}
+}

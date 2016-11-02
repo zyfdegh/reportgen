@@ -1,5 +1,7 @@
 package main
 
+import "regexp"
+
 // sort and get top n biggest number, from bigger to smaller
 func top(a []CodeFreq, n int) (b []CodeFreq) {
 	lenA := len(a)
@@ -39,4 +41,16 @@ func scan(arr []CodeFreq, code int) (contain bool, index int) {
 // So, if input 0.4, will return 9
 func hour(f float32) (h int) {
 	return int(f * 24)
+}
+
+// match and return 6 number in string
+func extractSixNum(str string) (num string) {
+	reg := regexp.MustCompile("[0-9]+")
+	arr := reg.FindAllString(str, -1)
+	for _, s := range arr {
+		if len(s) == 6 {
+			return s
+		}
+	}
+	return
 }

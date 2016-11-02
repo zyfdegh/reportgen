@@ -173,7 +173,7 @@ func process(file string) (err error) {
 
 		fmt.Printf("- Writing data to file %s...\n", reportXlsPath)
 
-		numPeriod := strings.Trim(sheet.Name(), "号段")
+		numPeriod := extractSixNum(sheet.Name())
 		err := writeExcel(writeCount, topCodeFreqArr, ratioTable, reportXlsPath, numPeriod)
 		if err != nil {
 			log.Printf("write result to excel error: %v\n", err)
